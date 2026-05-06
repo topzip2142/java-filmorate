@@ -23,11 +23,11 @@ public class FilmController {
     @PostMapping
     public Film addFilm(@RequestBody Film film) {
         log.info("Добавление фильма: {}", film);
-        validate(film);
-        film.setId(getNextId());
-        films.put(film.getId(), film);
-        log.info("Фильм добавлен с id={}", film.getId());
-        return film;
+
+        Film checkedFilm = checkFilm(film, true);
+
+        log.info("Фильм добавлен с id={}", checkedFilm.getId());
+        return checkedFilm;
     }
 
     @PutMapping
@@ -37,9 +37,10 @@ public class FilmController {
             log.warn("Фильм с id={} не найден", film.getId());
             throw new NotFoundException("Фильм с id=" + film.getId() + " не найден");
         }
-        validate(film);
-        films.put(film.getId(), film);
-        log.info("Фильм с id={} обновлён", film.getId());
+
+        Film checkedFilm = checkFilm(film, false);
+
+        log.info("Фильм с id={} обновлён", checkedFilm.getId());
         return film;
     }
 
@@ -66,6 +67,17 @@ public class FilmController {
             log.warn("Валидация не пройдена: продолжительность {} не является положительным числом", film.getDuration());
             throw new ValidationException("Продолжительность фильма должна быть положительным числом");
         }
+    }
+
+    private Film checkFilm(Film film, boolean updateFilmId) {
+        validate(film);
+
+        if (updateFilmId) {
+            film.setId(getNextId());
+        }
+
+        films.put(film.getId(), film);
+        return film;
     }
 
     private long getNextId() {

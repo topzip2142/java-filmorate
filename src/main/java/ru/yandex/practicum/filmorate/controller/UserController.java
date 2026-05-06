@@ -21,12 +21,11 @@ public class UserController {
     @PostMapping
     public User createUser(@RequestBody User user) {
         log.info("Создание пользователя: {}", user);
-        validate(user);
-        applyNameFallback(user);
-        user.setId(getNextId());
-        users.put(user.getId(), user);
-        log.info("Пользователь создан с id={}", user.getId());
-        return user;
+        User checkedUser = checkUser(user, true);
+
+        log.info("Пользователь создан с id={}", checkedUser.getId());
+
+        return checkedUser;
     }
 
     @PutMapping
@@ -36,11 +35,11 @@ public class UserController {
             log.warn("Пользователь с id={} не найден", user.getId());
             throw new NotFoundException("Пользователь с id=" + user.getId() + " не найден");
         }
-        validate(user);
-        applyNameFallback(user);
-        users.put(user.getId(), user);
-        log.info("Пользователь с id={} обновлён", user.getId());
-        return user;
+
+        User checkedUser = checkUser(user, false);
+        log.info("Пользователь с id={} обновлён", checkedUser.getId());
+
+        return checkedUser;
     }
 
     @GetMapping
@@ -70,6 +69,19 @@ public class UserController {
             log.warn("Валидация не пройдена: дата рождения {} не указана или находится в будущем", user.getBirthday());
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
+    }
+
+    private User checkUser(User user, boolean updateUserId) {
+        validate(user);
+        applyNameFallback(user);
+
+        if (updateUserId) {
+            user.setId(getNextId());
+        }
+
+        users.put(user.getId(), user);
+
+        return user;
     }
 
     private void applyNameFallback(User user) {
