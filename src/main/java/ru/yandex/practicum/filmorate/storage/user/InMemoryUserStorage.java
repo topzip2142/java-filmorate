@@ -13,7 +13,6 @@ import java.util.Optional;
 @Component
 public class InMemoryUserStorage implements UserStorage {
     private static final long DEFAULT_MAX_ID = 0L;
-
     private final Map<Long, User> users = new HashMap<>();
 
     @Override
