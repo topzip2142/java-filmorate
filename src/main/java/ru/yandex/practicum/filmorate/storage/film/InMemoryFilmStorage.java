@@ -12,6 +12,7 @@ import java.util.Optional;
 @Slf4j
 @Component
 public class InMemoryFilmStorage implements FilmStorage {
+    private static final long DEFAULT_MAX_ID = 0L;
     private final Map<Long, Film> films = new HashMap<>();
 
     @Override
@@ -54,7 +55,7 @@ public class InMemoryFilmStorage implements FilmStorage {
                 .stream()
                 .mapToLong(id -> id)
                 .max()
-                .orElse(0);
+                .orElse(DEFAULT_MAX_ID);
         return ++currentMaxId;
     }
 }
