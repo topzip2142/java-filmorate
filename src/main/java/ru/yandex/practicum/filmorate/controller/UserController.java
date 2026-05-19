@@ -1,101 +1,80 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @RestController
+@Validated
 @RequestMapping("/users")
 public class UserController {
-    private final Map<Long, User> users = new HashMap<>();
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/{id}")
+    public User getUserById(@PathVariable @Positive Long id) {
+        log.info("GET /users/{} - получение пользователя по ID", id);
+        return userService.getUserById(id);
+    }
 
     @PostMapping
-    public User createUser(@RequestBody User user) {
-        log.info("Создание пользователя: {}", user);
-        User checkedUser = checkUser(user, true);
-
-        log.info("Пользователь создан с id={}", checkedUser.getId());
-
-        return checkedUser;
+    public User createUser(@Valid @RequestBody User user) {
+        log.info("POST /users - создание пользователя: {}", user.getLogin());
+        return userService.createUser(user);
     }
 
     @PutMapping
-    public User updateUser(@RequestBody User user) {
-        log.info("Обновление пользователя: {}", user);
-        if (!users.containsKey(user.getId())) {
-            log.warn("Пользователь с id={} не найден", user.getId());
-            throw new NotFoundException("Пользователь с id=" + user.getId() + " не найден");
-        }
+    public User updateUser(@Valid @RequestBody User user) {
+        log.info("PUT /users - обновление пользователя с ID: {}", user.getId());
+        return userService.updateUser(user);
+    }
 
-        User checkedUser = checkUser(user, false);
-        log.info("Пользователь с id={} обновлён", checkedUser.getId());
+    @PutMapping("/{id}/friends/{friendId}")
+    public void addFriend(
+            @PathVariable @Positive Long id,
+            @PathVariable @Positive Long friendId) {
+        log.info("PUT /users/{}/friends/{} - добавление в друзья", id, friendId);
+        userService.addFriend(id, friendId);
+    }
 
-        return checkedUser;
+    @DeleteMapping("/{id}/friends/{friendId}")
+    public void removeFriend(
+            @PathVariable @Positive Long id,
+            @PathVariable @Positive Long friendId) {
+        log.info("DELETE /users/{}/friends/{} - удаление из друзей", id, friendId);
+        userService.removeFriend(id, friendId);
+    }
+
+    @GetMapping("/{id}/friends")
+    public List<User> getFriends(@PathVariable @Positive Long id) {
+        log.info("GET /users/{}/friends - получение списка друзей", id);
+        return userService.getFriends(id);
+    }
+
+    @GetMapping("/{id}/friends/common/{otherId}")
+    public List<User> getCommonFriends(
+            @PathVariable @Positive Long id,
+            @PathVariable @Positive Long otherId) {
+        log.info("GET /users/{}/friends/common/{} - поиск общих друзей", id, otherId);
+        return userService.getCommonFriends(id, otherId);
     }
 
     @GetMapping
-    public List<User> getAllUsers() {
-        log.info("Запрос списка всех пользователей");
-        return new ArrayList<>(users.values());
-    }
-
-    private void validate(User user) {
-        if (user.getEmail() == null || user.getEmail().isBlank()) {
-            log.warn("Валидация не пройдена: электронная почта пустая");
-            throw new ValidationException("Электронная почта не может быть пустой");
-        }
-        if (!user.getEmail().contains("@")) {
-            log.warn("Валидация не пройдена: электронная почта '{}' не содержит @", user.getEmail());
-            throw new ValidationException("Электронная почта должна содержать символ @");
-        }
-        if (user.getLogin() == null || user.getLogin().isBlank()) {
-            log.warn("Валидация не пройдена: логин пустой");
-            throw new ValidationException("Логин не может быть пустым");
-        }
-        if (user.getLogin().contains(" ")) {
-            log.warn("Валидация не пройдена: логин '{}' содержит пробелы", user.getLogin());
-            throw new ValidationException("Логин не может содержать пробелы");
-        }
-        if (user.getBirthday() == null || user.getBirthday().isAfter(LocalDate.now())) {
-            log.warn("Валидация не пройдена: дата рождения {} не указана или находится в будущем", user.getBirthday());
-            throw new ValidationException("Дата рождения не может быть в будущем");
-        }
-    }
-
-    private User checkUser(User user, boolean updateUserId) {
-        validate(user);
-        applyNameFallback(user);
-
-        if (updateUserId) {
-            user.setId(getNextId());
-        }
-
-        users.put(user.getId(), user);
-
-        return user;
-    }
-
-    private void applyNameFallback(User user) {
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
-    }
-
-    private long getNextId() {
-        long currentMaxId = users.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
+    public Collection<User> getAllUsers() {
+        log.info("GET /users - получение всех пользователей");
+        return userService.findAllUsers();
     }
 }

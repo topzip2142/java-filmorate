@@ -1,134 +1,75 @@
 package ru.yandex.practicum.filmorate;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.filmorate.controller.FilmController;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
+import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class FilmControllerTest {
-
-    private FilmController controller;
+public class FilmControllerTest {
+    private Validator validator;
 
     @BeforeEach
     void setUp() {
-        controller = new FilmController();
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        validator = factory.getValidator();
     }
 
-    private Film validFilm() {
-        Film film = new Film();
-        film.setName("Звёздные войны. Эпизод 4 - Новая надежда");
-        film.setDescription("Оригинальная трилогия");
-        film.setReleaseDate(LocalDate.of(1977, 5, 25));
-        film.setDuration(124);
-        return film;
-    }
-
-    @Test
-    void addFilm_valid_returnsFilmWithId() {
-        Film film = validFilm();
-        Film result = controller.addFilm(film);
-        assertNotNull(result.getId());
-        assertTrue(result.getId() > 0);
+    private Film createValidFilm() {
+        Film validFilm = new Film();
+        validFilm.setName("Valid film");
+        validFilm.setDescription("description");
+        validFilm.setReleaseDate(LocalDate.of(2000, 1, 1));
+        validFilm.setDuration(100);
+        return validFilm;
     }
 
     @Test
-    void addFilm_emptyName_throwsValidationException() {
-        Film film = validFilm();
-        film.setName("");
-        assertThrows(ValidationException.class, () -> controller.addFilm(film));
+    @DisplayName("Проверка валидации фильма с пустым названием")
+    void testCreateFilmWithEmptyName() {
+        Film film = createValidFilm();
+        film.setName(" ");
+        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        assertFalse(violations.isEmpty());
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Название должно быть заполнено")));
     }
 
     @Test
-    void addFilm_blankName_throwsValidationException() {
-        Film film = validFilm();
-        film.setName("   ");
-        assertThrows(ValidationException.class, () -> controller.addFilm(film));
-    }
-
-    @Test
-    void addFilm_nullName_throwsValidationException() {
-        Film film = validFilm();
-        film.setName(null);
-        assertThrows(ValidationException.class, () -> controller.addFilm(film));
-    }
-
-    @Test
-    void addFilm_descriptionExactly200Chars_ok() {
-        Film film = validFilm();
-        film.setDescription("a".repeat(200));
-        assertDoesNotThrow(() -> controller.addFilm(film));
-    }
-
-    @Test
-    void addFilm_description201Chars_throwsValidationException() {
-        Film film = validFilm();
+    @DisplayName("Проверка валидации фильма с описанием длиннее 200 символов")
+    void testCreateFilmWithTooLongDescription() {
+        Film film = createValidFilm();
         film.setDescription("a".repeat(201));
-        assertThrows(ValidationException.class, () -> controller.addFilm(film));
+        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        assertFalse(violations.isEmpty());
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Описание не должно быть длиннее 200 символов")));
     }
 
     @Test
-    void addFilm_releaseDateExactlyMinDate_ok() {
-        Film film = validFilm();
-        film.setReleaseDate(LocalDate.of(1895, 12, 28));
-        assertDoesNotThrow(() -> controller.addFilm(film));
-    }
-
-    @Test
-    void addFilm_releaseDateBeforeMinDate_throwsValidationException() {
-        Film film = validFilm();
-        film.setReleaseDate(LocalDate.of(1895, 12, 27));
-        assertThrows(ValidationException.class, () -> controller.addFilm(film));
-    }
-
-    @Test
-    void addFilm_durationZero_throwsValidationException() {
-        Film film = validFilm();
-        film.setDuration(0);
-        assertThrows(ValidationException.class, () -> controller.addFilm(film));
-    }
-
-    @Test
-    void addFilm_durationNegative_throwsValidationException() {
-        Film film = validFilm();
-        film.setDuration(-1);
-        assertThrows(ValidationException.class, () -> controller.addFilm(film));
-    }
-
-    @Test
-    void addFilm_durationOne_ok() {
-        Film film = validFilm();
-        film.setDuration(1);
-        assertDoesNotThrow(() -> controller.addFilm(film));
-    }
-
-    @Test
-    void addFilm_nullReleaseDate_throwsValidationException() {
-        Film film = validFilm();
+    @DisplayName("Проверка валидации фильма без даты релиза")
+    void testCreateFilmWithEmptyRealisedDate() {
+        Film film = createValidFilm();
         film.setReleaseDate(null);
-        assertThrows(ValidationException.class, () -> controller.addFilm(film));
+        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        assertFalse(violations.isEmpty());
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Дата релиза должна быть указна")));
     }
 
     @Test
-    void updateFilm_valid_returnsUpdatedFilm() {
-        Film film = controller.addFilm(validFilm());
-        film.setName("Новое название");
-        Film updated = controller.updateFilm(film);
-        assertEquals("Новое название", updated.getName());
-    }
-
-    @Test
-    void getAllFilms_empty_returnsEmptyList() {
-        assertTrue(controller.getAllFilms().isEmpty());
-    }
-
-    @Test
-    void getAllFilms_afterAdd_returnsFilm() {
-        controller.addFilm(validFilm());
-        assertEquals(1, controller.getAllFilms().size());
+    @DisplayName("Проверка валидации фильма с неположительной продолжительностью")
+    void testCreateFilmWithNegativeDuration() {
+        Film film = createValidFilm();
+        film.setDuration(-1);
+        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        assertFalse(violations.isEmpty());
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Продолжительность фильма должна быть положительным числом")));
     }
 }

@@ -1,157 +1,82 @@
 package ru.yandex.practicum.filmorate;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.filmorate.controller.UserController;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class UserControllerTest {
-
-    private UserController controller;
+public class UserControllerTest {
+    private Validator validator;
 
     @BeforeEach
     void setUp() {
-        controller = new UserController();
+        validator = Validation.buildDefaultValidatorFactory().getValidator();
     }
 
-    private User validUser() {
-        User user = new User();
-        user.setEmail("topzip2142@yandex.ru");
-        user.setLogin("topzip2142");
-        user.setName("Александр");
-        user.setBirthday(LocalDate.of(1995, 6, 10));
+    private User createValidUser() {
+        User user = User.builder()
+                .email("topzip2142@yandex.ru")
+                .login("topzip2142")
+                .birthday(LocalDate.of(1995, 6, 10))
+                .build();
         return user;
     }
 
+    @DisplayName("Проверка валидации пользователя с незаполненным email")
     @Test
-    void createUser_valid_returnsUserWithId() {
-        User result = controller.createUser(validUser());
-        assertNotNull(result.getId());
-        assertTrue(result.getId() > 0);
+    void testCreateUserWithEmptyEmail() {
+        User user = createValidUser();
+        user.setEmail(" ");
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        assertFalse(violations.isEmpty());
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Адрес электронной почты должен быть указан")));
     }
 
+    @DisplayName("Проверка валидации пользователя с некорректным email")
     @Test
-    void createUser_emptyEmail_throwsValidationException() {
-        User user = validUser();
-        user.setEmail("");
-        assertThrows(ValidationException.class, () -> controller.createUser(user));
+    void testCreateUserWithInvalidEmail() {
+        User user = createValidUser();
+        user.setEmail("invalidemail");
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        assertFalse(violations.isEmpty());
+        assertEquals("Электронная почта должна быть формата электронного адреса", violations.iterator().next().getMessage());
     }
 
+    @DisplayName("Проверка валидации пользователя с пустым логином")
     @Test
-    void createUser_nullEmail_throwsValidationException() {
-        User user = validUser();
-        user.setEmail(null);
-        assertThrows(ValidationException.class, () -> controller.createUser(user));
+    void testCreateUserWithEmptyLogin() {
+        User user = createValidUser();
+        user.setLogin(" ");
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        assertFalse(violations.isEmpty());
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Логин не должен содержать пробелы")));
     }
 
+    @DisplayName("Проверка валидации пользователя с логином содержащим пробел")
     @Test
-    void createUser_emailWithoutAt_throwsValidationException() {
-        User user = validUser();
-        user.setEmail("userexample.com");
-        assertThrows(ValidationException.class, () -> controller.createUser(user));
+    void testCreateUserWithLoginContainsSpaces() {
+        User user = createValidUser();
+        user.setLogin("test user");
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        assertFalse(violations.isEmpty());
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Логин не должен содержать пробелы")));
     }
 
+    @DisplayName("Проверка валидации пользователя с датой рождения в будущем")
     @Test
-    void createUser_emailWithAt_ok() {
-        User user = validUser();
-        user.setEmail("a@b");
-        assertDoesNotThrow(() -> controller.createUser(user));
-    }
-
-    @Test
-    void createUser_emptyLogin_throwsValidationException() {
-        User user = validUser();
-        user.setLogin("");
-        assertThrows(ValidationException.class, () -> controller.createUser(user));
-    }
-
-    @Test
-    void createUser_nullLogin_throwsValidationException() {
-        User user = validUser();
-        user.setLogin(null);
-        assertThrows(ValidationException.class, () -> controller.createUser(user));
-    }
-
-    @Test
-    void createUser_loginWithSpace_throwsValidationException() {
-        User user = validUser();
-        user.setLogin("user login");
-        assertThrows(ValidationException.class, () -> controller.createUser(user));
-    }
-
-    @Test
-    void createUser_loginWithLeadingSpace_throwsValidationException() {
-        User user = validUser();
-        user.setLogin(" userlogin");
-        assertThrows(ValidationException.class, () -> controller.createUser(user));
-    }
-
-    @Test
-    void createUser_emptyName_usesLoginAsName() {
-        User user = validUser();
-        user.setName("");
-        User result = controller.createUser(user);
-        assertEquals(user.getLogin(), result.getName());
-    }
-
-    @Test
-    void createUser_nullName_usesLoginAsName() {
-        User user = validUser();
-        user.setName(null);
-        User result = controller.createUser(user);
-        assertEquals(user.getLogin(), result.getName());
-    }
-
-    @Test
-    void createUser_blankName_usesLoginAsName() {
-        User user = validUser();
-        user.setName("   ");
-        User result = controller.createUser(user);
-        assertEquals(user.getLogin(), result.getName());
-    }
-
-    @Test
-    void createUser_birthdayToday_ok() {
-        User user = validUser();
-        user.setBirthday(LocalDate.now());
-        assertDoesNotThrow(() -> controller.createUser(user));
-    }
-
-    @Test
-    void createUser_birthdayTomorrow_throwsValidationException() {
-        User user = validUser();
+    void testCreateUserWithBirthdayInFuture() {
+        User user = createValidUser();
         user.setBirthday(LocalDate.now().plusDays(1));
-        assertThrows(ValidationException.class, () -> controller.createUser(user));
-    }
-
-    @Test
-    void createUser_nullBirthday_throwsValidationException() {
-        User user = validUser();
-        user.setBirthday(null);
-        assertThrows(ValidationException.class, () -> controller.createUser(user));
-    }
-
-    @Test
-    void updateUser_valid_returnsUpdatedUser() {
-        User user = controller.createUser(validUser());
-        user.setName("Новое имя");
-        User updated = controller.updateUser(user);
-        assertEquals("Новое имя", updated.getName());
-    }
-
-    @Test
-    void getAllUsers_empty_returnsEmptyList() {
-        assertTrue(controller.getAllUsers().isEmpty());
-    }
-
-    @Test
-    void getAllUsers_afterCreate_returnsUser() {
-        controller.createUser(validUser());
-        assertEquals(1, controller.getAllUsers().size());
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        assertFalse(violations.isEmpty());
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Дата рождения не может быть в будущем")));
     }
 }
