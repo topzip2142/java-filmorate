@@ -122,8 +122,8 @@ public class FriendshipDbStorageTests {
 
     @Test
     void shouldReturnEmptyWhenFriendshipNotExists() {
-        assertThat(friendshipDbStorage.
-                findFriendship(1, 2)).isEmpty();
+        assertThat(friendshipDbStorage
+                .findFriendship(1, 2)).isEmpty();
     }
 
     @Test
@@ -143,8 +143,8 @@ public class FriendshipDbStorageTests {
 
     @Test
     void shouldThrowExceptionWhenUserIdsAreNull() {
-        assertThat(friendshipDbStorage.
-                findFriendship(1, null)).isEmpty();
+        assertThat(friendshipDbStorage
+                .findFriendship(1, null)).isEmpty();
     }
 
     @Test
