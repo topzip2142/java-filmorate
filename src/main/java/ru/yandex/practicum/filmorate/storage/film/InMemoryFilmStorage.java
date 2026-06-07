@@ -1,61 +1,48 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.film.Film;
+
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-@Slf4j
 @Component
 public class InMemoryFilmStorage implements FilmStorage {
-    private static final long DEFAULT_MAX_ID = 0L;
     private final Map<Long, Film> films = new HashMap<>();
+    private long nextId = 0;
 
     @Override
-    public Collection<Film> findAllFilms() {
+    public Collection<Film> getFilms() {
         return films.values();
     }
 
     @Override
-    public Film createFilm(Film film) {
+    public Optional<Film> getFilmById(long id) {
+        return Optional.ofNullable(films.get(id));
+    }
+
+    @Override
+    public Film addFilm(Film film) {
         film.setId(getNextId());
         films.put(film.getId(), film);
-        log.info("Добавлен фильм {}", film.getId());
         return film;
     }
 
     @Override
-    public Film updateFilm(Film newFilm) {
-        Long id = newFilm.getId();
-        if (!films.containsKey(id)) {
-            log.warn("Попытка обновить несуществующий фильм ID: {}", id);
-            return null;
-        }
-        films.put(id, newFilm);
-        log.info("Обновлен фильм с ID: {}, название: {}", id, newFilm.getName());
-        return newFilm;
-
+    public Film updateFilm(Film film) {
+        films.put(film.getId(), film);
+        return film;
     }
 
     @Override
-    public Optional<Film> getFilmById(Long id) {
-        Film film = films.get(id);
-        if (film == null) {
-            log.warn("Фильм ID {} не найден", id);
-        }
-        return Optional.ofNullable(film);
+    public boolean existsFilmById(long id) {
+        return films.containsKey(id);
     }
 
     private long getNextId() {
-        long currentMaxId = films.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(DEFAULT_MAX_ID);
-        return ++currentMaxId;
+        return nextId += 1;
     }
 }
