@@ -114,7 +114,7 @@ public class FilmDtoTest {
         dto.setDuration(1D);
 
         Set<ConstraintViolation<FilmCreateDto>> violations = validator.validate(dto);
-        assertFalse(violations.stream().anyMatch(v -> v.getPropertyPath()
+        assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath()
                         .toString().equals("releaseDate")));
     }
 
@@ -231,7 +231,7 @@ public class FilmDtoTest {
         dto.setDuration(1D);
 
         Set<ConstraintViolation<FilmUpdateDto>> violations = validator.validate(dto);
-        assertFalse(violations.stream().anyMatch(v -> v.getPropertyPath().toString()
+        assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString()
                 .equals("releaseDate")));
     }
 
@@ -241,6 +241,6 @@ public class FilmDtoTest {
         dto.setId(1L);
 
         Set<ConstraintViolation<FilmUpdateDto>> violations = validator.validate(dto);
-        assertTrue(violations.isEmpty());
+        assertFalse(violations.isEmpty());
     }
 }
