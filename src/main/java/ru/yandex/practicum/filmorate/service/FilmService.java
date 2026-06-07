@@ -21,6 +21,7 @@ import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -63,15 +64,58 @@ public class FilmService {
 
     public Collection<FilmResponseDto> getFilms() {
         log.debug("Получить все фильмы");
+
         Collection<FilmResponseDto> filmsResponseDto = filmStorage.getFilms().stream()
                 .map(film -> {
-                    List<Genre> genres = loadGenresForFilm(film);
-                    Mpa mpa = loadMpaForFilm(film).orElse(null);
+                    List<Genre> genres = getFilmGenres(film);
+                    Mpa mpa = getFilmMpa(film);
                     return filmDtoMapper.toFilmResponse(film, mpa, genres);
                 })
                 .toList();
         log.debug("Кол-во фильмов - {}", filmsResponseDto.size());
         return filmsResponseDto;
+    }
+
+    private List<Genre> getFilmGenres(Film film) {
+        log.debug("Загрузка жанров для фильма {}", film.getId());
+
+        if (film.getGenres() == null || film.getGenres().isEmpty()) {
+            log.debug("Жанры отсутствуют");
+            return Collections.emptyList();
+        }
+
+        List<Genre> allGenres = genreStorage.findAll();
+
+
+        Map<Long, Genre> genreMap = allGenres.stream()
+                .collect(Collectors.toMap(Genre::getId, Function.identity()));
+
+        List<Genre> filmGenres = film.getGenres().stream()
+                .map(genreMap::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        log.debug("Найдено жанров: {}", filmGenres.size());
+        return filmGenres;
+    }
+
+    private Mpa getFilmMpa(Film film) {
+        log.debug("Загрузка MPA для фильма {}", film.getId());
+
+        if (film.getMpa() == null) {
+            log.debug("MPA отсутствует");
+            return null;
+        }
+
+        List<Mpa> allMpas = mpaStorage.findAll();
+
+        Map<Long, Mpa> mpaMap = allMpas.stream()
+                .collect(Collectors.toMap(Mpa::getId, Function.identity()));
+
+        Mpa mpa = mpaMap.get(film.getMpa());
+
+        log.debug("Найдено MPA: {}", mpa != null ? mpa.getName() : "null");
+        return mpa;
     }
 
     public FilmResponseDto addFilm(FilmCreateDto dto) {
