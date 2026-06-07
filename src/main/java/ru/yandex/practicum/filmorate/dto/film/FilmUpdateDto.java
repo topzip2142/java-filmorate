@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import ru.yandex.practicum.filmorate.dto.genre.GenreFilmCreateDto;
 import ru.yandex.practicum.filmorate.dto.mpa.MpaUpdateDto;
+import ru.yandex.practicum.filmorate.validation.annotation.MinReleaseDate;
 
 import java.time.LocalDate;
 import java.util.Set;
@@ -22,6 +23,8 @@ public class FilmUpdateDto {
     @Size(min = 1, max = 200)
     private String description;
 
+    @NotNull
+    @MinReleaseDate
     private LocalDate releaseDate;
 
     private MpaUpdateDto mpa;
