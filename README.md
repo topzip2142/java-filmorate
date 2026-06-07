@@ -3,46 +3,36 @@
 
 # Основные таблицы
 
-* user — пользователи
+* users — пользователи
 * film — фильмы
 * mpa — рейтинги MPA
 * genre — жанры
-* film_genres — связь фильмов с жанрами
-* user_likes — лайки пользователей фильмов
+* film_genre — связь фильмов с жанрами
+* film_like — лайки пользователей фильмов
 * friendship — дружба между пользователями
 
-# Примеры запросы
+# Примеры запросов
 
-### 1. Все фильмы с рейтингом PG-13
+### 1. Добавление фильма
 ```
-SELECT f.name
-FROM film as f
-LEFT JOIN film_genres AS fg ON f.film_id = fg.film_id
-LEFT JOIN genre AS g ON g.film_id = f.film_id
-WHERE g.name = 'PG-13'
+INSERT INTO film (name, description, mpa_id, release_date, duration)
+VALUES ('Film', 'Film', 1, '2010-11-31', 136);
 ``` 
-### 2. Все подтверждённые друзья 1-го пользователя
+### 2. Получение всех фильмов
 ```
-SELECT u.*
-FROM user AS u
-LEFT JOIN friendship AS f ON u.id = f.friend_id
-WHERE f.user_id = 1 AND f.status = 'CONFIRMED';
+SELECT f.id, f.name, f.description, f.release_date, f.duration, m.name AS mpa
+FROM film f
+JOIN mpa m ON f.mpa_id = m.id
+ORDER BY f.id;
 ```
-### 3. 10 самых популярных фильмов
+### 3. Добавление пользователя
 ```
-SELECT f.name, COUNT(l.user_id) AS likes
-FROM film AS f
-LEFT JOIN user_likes AS ul ON f.id = ul.film_id
-GROUP BY f.id
-ORDER BY likes DESC
-LIMIT 10;
+INSERT INTO users (name, login, email, birthday)
+VALUES ('Test', 'login', 'test@mail.com', '1990-01-01');
 ```
 
-### 4. Все жанры 1-го фильма
+### 4. Добавление в друзья
 ```
-SELECT g.name
-FROM film AS f
-LEFT JOIN film_genres AS fg ON f.id = fg.film_id
-LEFT JOIN genre AS g ON fg.genre_id = g.id
-WHERE f.id = 1;
+INSERT INTO friendship (user1_id, user2_id, requester_id, status)
+VALUES (1, 2, 1, 'PENDING');
 ```
